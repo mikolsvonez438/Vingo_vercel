@@ -1,16 +1,29 @@
 const express = require('express');
 const app = express();
+const { Server } = require('socket.io');
 const server = require('http').createServer(app);
+const path = require('path'); // Add this line
+
 const io = require('socket.io')(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
     credentials: true
-  },
-  path: '/socket.io/' // Explicitly set the path
+  }
 });
 
+// Serve static files from the public directory
 app.use(express.static('public'));
+
+// Add this explicit route for the root path
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Add a catch-all route handler
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 const gameRooms = new Map(); // Room Code -> Room State
 
