@@ -17,7 +17,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "public/server.js"
+      "dest": "public/game.js"
     },
     {
       "src": "/(.*)",
