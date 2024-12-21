@@ -231,16 +231,18 @@ pusher.connection.bind('error', (err) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ playerName, playerId })
+                body: JSON.stringify({ 
+                    playerName, 
+                    playerId 
+                })
             });
             const data = await response.json();
             if (data.roomCode) {
                 currentRoom = data.roomCode;
                 isHost = true;
                 initializePusher(currentRoom);
-                hostControls.style.display = 'block';
-                playerView.style.display = 'none';
                 welcomeScreen.style.display = 'none';
+                hostControls.style.display = 'block';
                 showMessage(`Room created! Room code: ${currentRoom}`, 'green');
             }
         } catch (error) {
@@ -269,12 +271,11 @@ joinRoomBtn.addEventListener('click', async () => {
                 })
             });
             const data = await response.json();
-            if (data.card) {
+            if (data.success) {
                 currentRoom = roomCode;
-                myBingoCard = data.card;
                 initializePusher(currentRoom);
-                renderBingoCard(data.card);
                 welcomeScreen.style.display = 'none';
+                playerView.style.display = 'block';
                 showMessage(`Joined room: ${roomCode}`, 'green');
             }
         } catch (error) {
