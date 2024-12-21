@@ -12,11 +12,11 @@
   ],
   "routes": [
     {
-      "src": "/socket.io/(.*)",
+      "src": "/api/(.*)",
       "dest": "server.js"
     },
     {
-      "src": "/health",
+      "src": "/pusher/auth",
       "dest": "server.js"
     },
     {
@@ -32,6 +32,10 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "PUSHER_APP_ID": "@pusher_app_id",
+    "PUSHER_KEY": "@pusher_key",
+    "PUSHER_SECRET": "@pusher_secret",
+    "PUSHER_CLUSTER": "@pusher_cluster"
   }
 }
