@@ -1,9 +1,11 @@
 const express = require('express');
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http, {
+const http = require('http');
+const server = http.createServer(app);
+const { Server } = require('socket.io');
+const io = new Server(server, {
   cors: {
-    origin: "https://vingo-vercel.vercel.app",
+    origin: "*",
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"]
   },
@@ -324,7 +326,7 @@ http.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
-module.exports = app;
+module.exports = { app, server, io };
 // // row and column pattern
 // X X X X X
 // · · · · ·
