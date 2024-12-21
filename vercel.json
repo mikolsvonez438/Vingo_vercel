@@ -13,24 +13,14 @@
   "routes": [
     {
       "src": "/socket.io/(.*)",
-      "dest": "server.js",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
-        "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept"
-      }
+      "dest": "/server.js"
     },
     {
-      "src": "/game.js",
-      "dest": "/public/game.js"
-    },
-    {
-      "src": "/styles.css",
-      "dest": "/public/styles.css"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/public/index.html"
+      "dest": "/server.js"
     }
   ]
 }
