@@ -3,6 +3,8 @@ const socket = io('https://vingo-vercel.vercel.app', {
   transports: ['websocket', 'polling'],
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
+  secure: true,
+  rejectUnauthorized: false
 });
 // Game state variables
 let isHost = false;
