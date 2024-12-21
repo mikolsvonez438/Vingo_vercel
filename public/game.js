@@ -1,10 +1,13 @@
 // Connect to Socket.IO server
 const socket = io({
-  transports: ['websocket', 'polling'], // Allow fallback to polling
+  transports: ['polling', 'websocket'], // Use polling first, then try websocket
+  upgrade: true,
+  rememberUpgrade: true,
+  path: '/socket.io/',
   reconnection: true,
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
-  path: '/socket.io/' // Match the path in server.js
+  timeout: 60000,
 });
 // Game state variables
 let isHost = false;
