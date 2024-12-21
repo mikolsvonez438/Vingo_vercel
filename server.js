@@ -3,12 +3,12 @@ const app = express();
 const { Server } = require('socket.io');
 
 const server = require('http').createServer(app);
-const io = new Server(server, {
+const io = require('socket.io')(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  },
-  path: '/socket.io/' // Explicitly set the path
+    origin: "*", // or specify your client domain
+    methods: ["GET", "POST"],
+    credentials: true
+  }
 });
 
 app.use(express.static('public'));
