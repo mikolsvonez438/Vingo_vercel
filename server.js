@@ -1,8 +1,15 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
-const io = require('socket.io')(http);
-// Serve static files from public directory
+const io = require('socket.io')(http, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"]
+  },
+  transports: ['websocket', 'polling']
+});
+
 app.use(express.static('public'));
 
 const gameRooms = new Map(); // Room Code -> Room State
@@ -317,7 +324,7 @@ http.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
-
+module.exports = app;
 // // row and column pattern
 // X X X X X
 // · · · · ·
