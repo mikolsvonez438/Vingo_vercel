@@ -1,14 +1,53 @@
 // Connect to Socket.IO server
-const socket = io({
-  transports: ['polling', 'websocket'], // Use polling first, then try websocket
-  upgrade: true,
-  rememberUpgrade: true,
-  path: '/socket.io/',
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-  timeout: 60000,
-});
+const initializeSocket = () => {
+  const socket = io({
+    transports: ['polling', 'websocket'],
+    upgrade: true,
+    rememberUpgrade: true,
+    path: '/socket.io/',
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    timeout: 60000,
+    autoConnect: true,
+    query: { timestamp: Date.now() }, // Add timestamp to prevent caching
+    forceNew: true
+  });
+
+  // Connection event handlers
+  socket.on('connect', () => {
+    console.log('Connected to server with ID:', socket.id);
+    console.log('Transport type:', socket.io.engine.transport.name);
+  });
+
+  socket.on('connect_error', (error) => {
+    console.error('Connection error:', error);
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log('Disconnected:', reason);
+    if (reason === 'io server disconnect') {
+      // Reconnect if server disconnected
+      socket.connect();
+    }
+  });
+
+  socket.io.on('error', (error) => {
+    console.error('Socket.IO error:', error);
+  });
+
+  socket.io.on('reconnect', (attempt) => {
+    console.log('Reconnected on attempt:', attempt);
+  });
+
+  socket.io.on('reconnect_attempt', () => {
+    console.log('Attempting to reconnect...');
+  });
+
+  return socket;
+};
+
+const socket = initializeSocket();
 // Game state variables
 let isHost = false;
 let playerName = '';
