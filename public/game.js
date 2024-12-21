@@ -1,5 +1,5 @@
-const pusher = new Pusher('YOUR_PUSHER_KEY', {
-    cluster: 'YOUR_PUSHER_CLUSTER',
+const pusher = new Pusher('9a5bf8582cf1d033c816', {
+    cluster: 'ap1',
     forceTLS: true
 });
 let channel; // Will store the Pusher channel instance
