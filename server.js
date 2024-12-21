@@ -1,9 +1,18 @@
 const express = require('express');
-const app = express();
 const Pusher = require('pusher');
+const cors = require('cors');
+const bodyParser = require('body-parser');
 const path = require('path');
 
-// Initialize Pushers
+const app = express();
+
+// Add middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static('public'));
+
+// Initialize Pusher
 const pusher = new Pusher({
     appId: process.env.PUSHER_APP_ID,
     key: process.env.PUSHER_KEY,
@@ -12,8 +21,7 @@ const pusher = new Pusher({
     useTLS: true
 });
 
-app.use(express.static('public'));
-app.use(express.json());
+
 
 // // Serve the main page
 // app.get('/', (req, res) => {
