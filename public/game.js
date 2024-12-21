@@ -1,7 +1,9 @@
 // Connect to Socket.IO server
 const socket = io(window.location.origin, {
   transports: ['websocket', 'polling'],
-  path: '/socket.io'
+  path: '/socket.io/',
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000
 });
 // Game state variables
 let isHost = false;
