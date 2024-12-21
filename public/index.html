@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-time BINGO Game</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/styles.css">
     <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
     <script>
-        // Your Pusher credentials
         const PUSHER_KEY = '9a5bf8582cf1d033c816';
         const PUSHER_CLUSTER = 'ap1';
     </script>
-    <script src="game.js" defer></script>
+    <script src="/game.js" defer></script>
 </head>
-
 <body>
+    <div id="app">
     <div class="container">
         <!-- Host Controls (initially hidden) -->
         <div id="hostControls" class="host-section" style="display: none;">
@@ -95,6 +94,7 @@
                 </div>
             </div>
         </div> -->
+    </div>
     </div>
 </body>
 
