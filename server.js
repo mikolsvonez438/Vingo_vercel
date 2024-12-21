@@ -205,8 +205,29 @@ app.post('/api/bingo-called', (req, res) => {
 app.post('/pusher/auth', (req, res) => {
     const socketId = req.body.socket_id;
     const channel = req.body.channel_name;
-    const auth = pusher.authorizeChannel(socketId, channel);
-    res.send(auth);
+    const userId = req.body.userId || req.body.auth?.params?.userId;
+    const userName = req.body.userName || req.body.auth?.params?.userName;
+
+    // Validate the presence channel name format
+    if (!channel.startsWith('presence-room-')) {
+        return res.status(403).json({ error: 'Invalid channel' });
+    }
+
+    try {
+        // Generate auth response for presence channel
+        const presenceData = {
+            user_id: userId,
+            user_info: {
+                name: userName
+            }
+        };
+
+        const auth = pusher.authorizeChannel(socketId, channel, presenceData);
+        res.json(auth);
+    } catch (error) {
+        console.error('Auth error:', error);
+        res.status(403).json({ error: 'Unauthorized' });
+    }
 });
 function generateRandomNumbers(min, max, count) {
     const numbers = [];
