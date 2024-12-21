@@ -1,7 +1,7 @@
 // Connect to Socket.IO server
-const socket = io(window.location.origin, {
-  transports: ['websocket', 'polling'],
-  path: '/socket.io/',
+const socket = io('https://vingo-vercel.vercel.app', {
+  transports: ['websocket'],
+  reconnection: true,
   reconnectionAttempts: 5,
   reconnectionDelay: 1000
 });
