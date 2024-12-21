@@ -1,14 +1,13 @@
 const express = require('express');
 const app = express();
-const { Server } = require('socket.io');
-
 const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
   cors: {
-    origin: "*", // or specify your client domain
+    origin: "*",
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  path: '/socket.io/' // Explicitly set the path
 });
 
 app.use(express.static('public'));
@@ -320,14 +319,16 @@ function verifyWin(card, drawnNumbers) {
     return false;
 }
 // Start server
-// Important: Listen using 'server' instead of 'app'
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  // For local development
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
 
-// For Vercel serverless functions
-module.exports = app;
+// Export the server for Vercel
+module.exports = server;
 // // row and column pattern
 // X X X X X
 // · · · · ·
