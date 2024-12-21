@@ -13,7 +13,7 @@
     },
     {
       "src": "/(.*).(js|css|html)",
-      "dest": "/public/$1.$2"
+      "dest": "/public/$1"
     },
     {
       "src": "/(.*)",
