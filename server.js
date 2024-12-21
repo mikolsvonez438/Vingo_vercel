@@ -3,21 +3,37 @@ const app = express();
 const server = require('http').createServer(app);
 const path = require('path');
 
-// Update Socket.IO configuration
-const io = require('socket.io')(server, {
+// Updated Socket.IO configuration
+const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
     credentials: true
   },
-  transports: ['polling', 'websocket'], // Add polling as first option
-  allowEIO3: true, // Allow Engine.IO 3 compatibility
-  path: '/socket.io/',
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  transports: ['polling', 'websocket'],
+  allowEIO3: true,
+  cookie: false, // Disable Socket.IO cookie
+  connectTimeout: 45000,
+  // Add adapter for session handling
+  adapter: require("socket.io-adapter")()
+});
+
+// Middleware to handle CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
 });
 
 app.use(express.static('public'));
+
+// Basic health check route
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
