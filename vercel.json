@@ -13,28 +13,15 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server.js",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-      }
+      "dest": "server.js"
     },
     {
       "src": "/pusher/auth",
-      "dest": "server.js",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-      }
+      "dest": "server.js"
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.+\\.[a-zA-Z]+)$",
-      "dest": "/public/$1"
+      "src": "^/(.*)\\.(js|css|html|png|jpg|jpeg|gif|ico|json)$",
+      "dest": "/public/$1.$2"
     },
     {
       "src": "/(.*)",
