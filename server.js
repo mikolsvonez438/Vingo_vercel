@@ -1,21 +1,24 @@
 const express = require('express');
 const app = express();
-const { Server } = require('socket.io');
 const server = require('http').createServer(app);
-const path = require('path'); // Add this line
+const path = require('path');
 
+// Update Socket.IO configuration
 const io = require('socket.io')(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  transports: ['polling', 'websocket'], // Add polling as first option
+  allowEIO3: true, // Allow Engine.IO 3 compatibility
+  path: '/socket.io/',
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
-// Serve static files from the public directory
 app.use(express.static('public'));
 
-// Add this explicit route for the root path
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
