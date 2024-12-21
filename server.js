@@ -1,48 +1,29 @@
 const express = require('express');
 const app = express();
-const server = require('http').createServer(app);
+const Pusher = require('pusher');
 const path = require('path');
 
-// Updated Socket.IO configuration
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-    credentials: true
-  },
-  pingTimeout: 60000,
-  pingInterval: 25000,
-  transports: ['polling', 'websocket'],
-  allowEIO3: true,
-  cookie: false, // Disable Socket.IO cookie
-  connectTimeout: 45000,
-  // Add adapter for session handling
-  adapter: require("socket.io-adapter")()
-});
-
-// Middleware to handle CORS
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  next();
+// Initialize Pusher
+const pusher = new Pusher({
+    appId: process.env.PUSHER_APP_ID,
+    key: process.env.PUSHER_KEY,
+    secret: process.env.PUSHER_SECRET,
+    cluster: process.env.PUSHER_CLUSTER,
+    useTLS: true
 });
 
 app.use(express.static('public'));
+app.use(express.json());
 
-// Basic health check route
-app.get('/health', (req, res) => {
-  res.status(200).send('OK');
-});
+// // Serve the main page
+// app.get('/', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// });
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Add a catch-all route handler
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// // Add a catch-all route handler
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// });
 
 const gameRooms = new Map(); // Room Code -> Room State
 
@@ -60,16 +41,6 @@ function createNewRoom() {
     };
 }
 
-// Game state
-let gameState = {
-    host: null,
-    players: new Map(), // Socket ID -> Player Name
-    drawnNumbers: new Set(),
-    availableNumbers: new Set(),  // Add this to track available numbers
-    gameActive: false,
-    playerCards: new Map() // Socket ID -> Bingo Card
-
-};
 // Initialize available numbers (1-75)
 function initializeAvailableNumbers(roomCode) {
     const room = gameRooms.get(roomCode);
@@ -94,151 +65,130 @@ function getRandomNumber(roomCode) {
 
 }
 
-// In your server code
+app.post('/api/create-room', (req, res) => {
+    const { playerName, playerId } = req.body;
+    const roomCode = generateRoomCode();
+    gameRooms.set(roomCode, createNewRoom());
 
+    const room = gameRooms.get(roomCode);
+    room.host = playerId;
+    room.players.set(playerId, playerName);
 
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
-    // MESSAGE
-    // socket.on('chat_message', (data) => {
-    //     io.to(data.room).emit('chat_message', {
-    //         message: data.message,
-    //         sender: data.sender
-    //     });
-    // });
-    
-    // Handle create room request
-    socket.on('createRoom', (playerName) => {
-        const roomCode = generateRoomCode();
-        gameRooms.set(roomCode, createNewRoom());
-
-        const room = gameRooms.get(roomCode);
-        room.host = socket.id;
-        room.players.set(socket.id, playerName);
-
-        socket.join(roomCode);
-        socket.emit('roomCreated', roomCode);
-        socket.emit('hostAssigned');
-        
-        io.to(roomCode).emit('updatePlayers', Array.from(room.players.values()));
-
-        console.log(`Room ${roomCode} created by ${playerName}`);
+    // Trigger room creation event
+    pusher.trigger(`presence-room-${roomCode}`, 'room-created', {
+        roomCode,
+        players: Array.from(room.players.values())
     });
 
-    // Handle join room request
-    socket.on('joinRoom', ({ roomCode, playerName }) => {
-        const room = gameRooms.get(roomCode);
+    res.json({
+        roomCode,
+        isHost: true
+    });
+});
 
-        if (!room) {
-            socket.emit('errorMessage', 'Room does not exist');
-            return;
+app.post('/api/join-room', (req, res) => {
+    const { roomCode, playerName, playerId } = req.body;
+    const room = gameRooms.get(roomCode);
+
+    if (!room) {
+        return res.status(404).json({ error: 'Room does not exist' });
+    }
+
+    room.players.set(playerId, playerName);
+    const card = generateBingoCard();
+    room.playerCards.set(playerId, card);
+
+    // Trigger player joined event
+    pusher.trigger(`presence-room-${roomCode}`, 'player-joined', {
+        players: Array.from(room.players.values()),
+        newPlayer: playerName
+    });
+
+    res.json({
+        card,
+        players: Array.from(room.players.values())
+    });
+});
+
+app.post('/api/draw-number', (req, res) => {
+    const { roomCode, playerId } = req.body;
+    const room = gameRooms.get(roomCode);
+
+    if (playerId === room.host && room.gameActive) {
+        const number = getRandomNumber(roomCode);
+        if (number !== null) {
+            pusher.trigger(`presence-room-${roomCode}`, 'number-drawn', {
+                number
+            });
+            res.json({ number });
+        } else {
+            pusher.trigger(`presence-room-${roomCode}`, 'game-message', {
+                message: 'All numbers have been drawn!'
+            });
+            res.json({ message: 'All numbers drawn' });
         }
+    } else {
+        res.status(403).json({ error: 'Not authorized' });
+    }
+});
 
-        socket.join(roomCode);
-        room.players.set(socket.id, playerName);
-        socket.emit('roomJoined', roomCode);
-        
-        const card = generateBingoCard();
-        room.playerCards.set(socket.id, card);
+app.post('/api/start-game', (req, res) => {
+    const { roomCode, playerId } = req.body;
+    const room = gameRooms.get(roomCode);
 
-        socket.emit('playerAssigned', card);
-        io.to(roomCode).emit('updatePlayers', Array.from(room.players.values()));
+    if (playerId === room.host) {
+        room.gameActive = true;
+        room.drawnNumbers.clear();
+        initializeAvailableNumbers(roomCode);
 
-        console.log(`${playerName} joined room ${roomCode}`);
-    });
+        pusher.trigger(`presence-room-${roomCode}`, 'game-started', {});
+        res.json({ success: true });
+    } else {
+        res.status(403).json({ error: 'Not authorized' });
+    }
+});
 
-    // Handle number drawing (host only)
-    socket.on('drawNumber', (roomCode) => {
-        const room = gameRooms.get(roomCode);
+app.post('/api/reset-game', (req, res) => {
+    const { roomCode, playerId } = req.body;
+    const room = gameRooms.get(roomCode);
 
-        if (socket.id === room.host && room.gameActive) {
-            const number = getRandomNumber(roomCode);
+    if (playerId === room.host) {
+        room.gameActive = false;
+        room.drawnNumbers.clear();
+        initializeAvailableNumbers(roomCode);
 
-            if (number !== null) {
-                io.to(roomCode).emit('numberDrawn', number);
-            } else {
-                io.to(roomCode).emit('gameMessage', 'All numbers have been drawn!');
-            }
-        }
-    });
+        pusher.trigger(`presence-room-${roomCode}`, 'game-reset', {});
+        res.json({ success: true });
+    } else {
+        res.status(403).json({ error: 'Not authorized' });
+    }
+});
 
-    // Handle game start (host only)
-    socket.on('startGame', (roomCode) => {
-        const room = gameRooms.get(roomCode);
+app.post('/api/bingo-called', (req, res) => {
+    const { roomCode, playerName, card } = req.body;
+    const room = gameRooms.get(roomCode);
 
-        if (socket.id === room.host) {
-            room.gameActive = true;
-            room.drawnNumbers.clear();
-            initializeAvailableNumbers(roomCode);
-            io.to(roomCode).emit('gameStarted');
-        }
-    });
-
-    // Handle game reset (host only)
-    socket.on('resetGame', (roomCode) => {
-        const room = gameRooms.get(roomCode);
-
-        if (socket.id === room.host) {
+    if (room.gameActive) {
+        if (verifyWin(card, room.drawnNumbers)) {
             room.gameActive = false;
-            room.drawnNumbers.clear();
-            initializeAvailableNumbers(roomCode);
-            io.to(roomCode).emit('gameReset');
+            pusher.trigger(`presence-room-${roomCode}`, 'bingo-winner', {
+                winner: playerName
+            });
+            res.json({ success: true });
+        } else {
+            res.json({ success: false });
         }
-    });
+    } else {
+        res.status(400).json({ error: 'Game not active' });
+    }
+});
 
-    // Handle BINGO calls
-    socket.on('bingoCalled', ({ room, playerName, card }) => {
-        const gameRoom  = gameRooms.get(room);
-        console.log(room)
-
-        if (gameRoom .gameActive) {
-            if (verifyWin(card, gameRoom .drawnNumbers)) {
-                gameRoom .gameActive = false;
-                io.to(room).emit('bingoWinner', playerName);
-            }
-        }
-    });
-
-    // Handle disconnection
-    socket.on('disconnect', () => {
-        // Find which room the disconnected socket was in
-        for (const [roomCode, room] of gameRooms.entries()) {
-            if (room.players.has(socket.id)) {
-                const playerName = room.players.get(socket.id);
-
-                // If host disconnects, assign new host or delete room
-                if (socket.id === room.host) {
-                    const players = Array.from(room.players.keys());
-                    const remainingPlayers = players.filter(id => id !== socket.id);
-
-                    if (remainingPlayers.length > 0) {
-                        room.host = remainingPlayers[0];
-                        io.to(remainingPlayers[0]).emit('hostAssigned');
-                    } else {
-                        gameRooms.delete(roomCode);
-                        return;
-                    }
-                }
-
-                // Remove player from room
-                room.players.delete(socket.id);
-                room.playerCards.delete(socket.id);
-
-                // Update remaining players
-                io.to(roomCode).emit('updatePlayers', Array.from(room.players.values()));
-                console.log(`${playerName} disconnected from room ${roomCode}`);
-
-                // If room is empty, delete it
-                if (room.players.size === 0) {
-                    gameRooms.delete(roomCode);
-                    console.log(`Room ${roomCode} deleted`);
-                }
-
-                break;
-            }
-        }
-    });
+// Pusher authentication endpoint
+app.post('/pusher/auth', (req, res) => {
+    const socketId = req.body.socket_id;
+    const channel = req.body.channel_name;
+    const auth = pusher.authorizeChannel(socketId, channel);
+    res.send(auth);
 });
 function generateRandomNumbers(min, max, count) {
     const numbers = [];
@@ -350,17 +300,9 @@ function verifyWin(card, drawnNumbers) {
     console.log("pattern ko dito ang tinatawag")
     return false;
 }
-// Start server
-if (process.env.NODE_ENV !== 'production') {
-  // For local development
-  const PORT = process.env.PORT || 3000;
-  server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
 
 // Export the server for Vercel
-module.exports = server;
+module.exports = app;
 // // row and column pattern
 // X X X X X
 // · · · · ·
