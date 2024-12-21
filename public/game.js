@@ -1,5 +1,9 @@
 // Connect to Socket.IO server
-const socket = io();
+const socket = io('https://vingo-vercel.vercel.app', {
+  transports: ['websocket', 'polling'],
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+});
 // Game state variables
 let isHost = false;
 let playerName = '';
