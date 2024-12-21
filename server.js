@@ -1,19 +1,16 @@
 const express = require('express');
 const app = express();
-const http = require('http');
-const server = http.createServer(app);
 const { Server } = require('socket.io');
-const path = require('path');
-const io = new Server(server, {
+
+const httpServer = require('http').createServer(app);
+const io = new Server(httpServer, {
   cors: {
     origin: "*",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"]
-  },
-  transports: ['websocket', 'polling']
+    methods: ["GET", "POST"]
+  }
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public'));
 
 const gameRooms = new Map(); // Room Code -> Room State
 
@@ -327,7 +324,7 @@ http.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
-module.exports = { app, server, io };
+module.exports = app;
 // // row and column pattern
 // X X X X X
 // · · · · ·
