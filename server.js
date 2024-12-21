@@ -12,7 +12,7 @@ const io = new Server(server, {
   transports: ['websocket', 'polling']
 });
 
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 const gameRooms = new Map(); // Room Code -> Room State
 
