@@ -1,9 +1,10 @@
 // Connect to Socket.IO server
-const socket = io('https://vingo-vercel.vercel.app', {
-  transports: ['websocket'],
+const socket = io({
+  transports: ['websocket', 'polling'], // Allow fallback to polling
   reconnection: true,
   reconnectionAttempts: 5,
-  reconnectionDelay: 1000
+  reconnectionDelay: 1000,
+  path: '/socket.io/' // Match the path in server.js
 });
 // Game state variables
 let isHost = false;
