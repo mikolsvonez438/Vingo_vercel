@@ -1,6 +1,13 @@
 const pusher = new Pusher('9a5bf8582cf1d033c816', {
     cluster: 'ap1',
-    forceTLS: true
+    forceTLS: true,
+    authEndpoint: '/pusher/auth', // Add this
+    auth: {
+        params: {
+            userId: playerId,
+            userName: playerName
+        }
+    }
 });
 let channel; // Will store the Pusher channel instance
 
@@ -35,8 +42,19 @@ let channel; // Will store the Pusher channel instance
   const roomInput = document.getElementById('roomInput'); // Add this input to your HTML
   const createRoomBtn = document.getElementById('createRoom'); // Add this button to your HTML
   const joinRoomBtn = document.getElementById('joinRoom'); // Add this button to your HTML
-  
+  // Add connection handling
+pusher.connection.bind('connected', () => {
+    console.log('Connected to Pusher');
+});
+
+pusher.connection.bind('error', (err) => {
+    console.error('Pusher connection error:', err);
+});
   function initializePusher(roomCode) {
+      pusher.config.auth.params = {
+        userId: playerId,
+        userName: playerName
+    };
     // Unsubscribe from previous channel if exists
     if (channel) {
         pusher.unsubscribe(`presence-room-${currentRoom}`);
@@ -52,6 +70,10 @@ let channel; // Will store the Pusher channel instance
 
     channel.bind('pusher:subscription_error', (error) => {
         console.error('Subscription error:', error);
+        pusher.config.auth.params = {
+            userId: playerId,
+            userName: playerName
+        };
     });
 
     // Game events
@@ -340,7 +362,11 @@ callBingoBtn.addEventListener('click', async () => {
         showMessage('Invalid BINGO call - please check your card!', 'red');
     }
 });
-  
+window.addEventListener('unload', () => {
+    if (channel) {
+        pusher.unsubscribe(`presence-room-${currentRoom}`);
+    }
+});
  
   // Render BINGO card
   function renderBingoCard(card) {
