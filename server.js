@@ -1,15 +1,14 @@
 const express = require('express');
 const app = express();
 const { Server } = require('socket.io');
-const http = require('http');
 
-// Rest of your server code...
-const httpServer = require('http').createServer(app);
-const io = new Server(httpServer, {
+const server = require('http').createServer(app);
+const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
-  }
+  },
+  path: '/socket.io/' // Explicitly set the path
 });
 
 app.use(express.static('public'));
@@ -321,11 +320,13 @@ function verifyWin(card, drawnNumbers) {
     return false;
 }
 // Start server
-// const PORT = process.env.PORT || 3000;
-// http.listen(PORT, () => {
-//     console.log(`Server running on port ${PORT}`);
-// });
+// Important: Listen using 'server' instead of 'app'
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
+// For Vercel serverless functions
 module.exports = app;
 // // row and column pattern
 // X X X X X
